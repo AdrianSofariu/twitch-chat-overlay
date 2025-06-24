@@ -45,3 +45,13 @@ To start the application in development mode:
 ```bash
 npm start
 ```
+
+## How to Use the Overlay
+
+1. **Enter Channel Name:** In the overlay window, type the exact channel name of an ongoing Twitch livestream you wish to monitor.
+2. **Connect:** Click the **"Connect to Chat"** button.
+3. **View Chat:** If successful, chat messages from that stream will begin to appear in real-time.
+4. **Disconnect or Switch:** Click the **"Disconnect"** button to stop receiving messages, or enter a new channel name to switch to a different stream.
+5. **Close the App:** Use the **"X"** button in the top-right corner to close the application.
+
+Enjoy your customizable Twitch chat overlay!
