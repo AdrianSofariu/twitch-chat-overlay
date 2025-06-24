@@ -1,0 +1,31 @@
+{
+  "name": "twitch-chat-overlay",
+  "version": "1.0.0",
+  "main": "src/main/index.js",
+  "scripts": {
+    "build-renderer": "webpack --config webpack.config.js",
+    "start": "npm run build-renderer && electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@babel/core": "^7.27.4",
+    "@babel/preset-env": "^7.27.2",
+    "@babel/preset-react": "^7.27.1",
+    "babel-loader": "^10.0.0",
+    "copy-webpack-plugin": "^13.0.0",
+    "electron": "^36.5.0",
+    "electron-reloader": "^1.2.3",
+    "html-webpack-plugin": "^5.6.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tmi.js": "^1.8.5"
+  }
+}

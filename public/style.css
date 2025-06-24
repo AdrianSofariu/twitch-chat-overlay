@@ -1,0 +1,150 @@
+/* twitch-chat-overlay/public/style.css */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  background-color: black;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 8px;
+  box-sizing: border-box;
+  position: relative; /* Added for positioning close button */
+}
+
+/* Draggable header for moving the window */
+.draggable-header {
+  -webkit-app-region: drag;
+  height: 30px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  cursor: grab;
+  flex-shrink: 0;
+  position: relative; /* Needed to position child close button */
+}
+
+/* Close Button Styles */
+.close-button {
+  -webkit-app-region: no-drag; /* Important: Make button clickable */
+  position: absolute;
+  top: 5px; /* Adjust as needed */
+  right: 5px; /* Adjust as needed */
+  width: 20px;
+  height: 20px;
+  border-radius: 50%; /* Make it circular */
+  background-color: #ff5f56; /* Red for close */
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border: none;
+  line-height: 1; /* Adjust vertical alignment of 'X' */
+  padding: 0; /* Remove default padding */
+  box-sizing: border-box; /* Include padding/border in size */
+  transition: background-color 0.1s ease;
+}
+
+.close-button:hover {
+  background-color: #e0443e; /* Darker red on hover */
+}
+
+/* Main chat display area (will expand later) */
+.chat-display-area {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.chat-display-area::-webkit-scrollbar {
+  width: 8px;
+}
+.chat-display-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-display-area::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+/* Individual chat message style */
+.chat-message {
+  margin-top: 5px;
+  margin-bottom: 0;
+  font-size: 14px;
+  line-height: 1.3;
+  word-wrap: break-word;
+}
+
+.chat-message:first-child {
+  margin-top: 0; /* Remove top margin for the very first message */
+}
+
+.chat-message .username {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+/* Controls area for input and buttons */
+.controls {
+  flex-shrink: 0;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.controls input {
+  width: calc(100% - 16px);
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 14px;
+}
+.controls input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.controls button {
+  background-color: #6441a5;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+.controls button:hover {
+  background-color: #55348f;
+}
+
+/* Prevent dragging for specific interactive elements within a draggable region */
+.draggable-header button,
+.draggable-header input {
+  -webkit-app-region: no-drag;
+}
