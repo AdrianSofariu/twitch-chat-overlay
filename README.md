@@ -2,10 +2,12 @@
 
 A simple, customizable Twitch chat overlay built with Electron, React, and TMI.js. This application runs as a lightweight, always-on-top, borderless window, designed to display live chat from any Twitch channel.
 
+UPCOMING: 7TV support, interaction using Twitch HELIX api
+
 ## Features
 
 - **Real-time Twitch Chat:** Connects to any live Twitch channel and displays incoming chat messages.
-- **Customizable Window:** Borderless, transparent/black background (configurable), always-on-top, resizable, and draggable.
+- **Customizable Window:** Borderless, black background, always-on-top, resizable, and draggable.
 - **Performance Optimized:** Implements a message "sliding window" to limit the number of displayed messages, preventing memory growth and ensuring smooth performance in active channels.
 - **System Messages:** Provides clear feedback on connection status (connecting, connected, disconnected, errors).
 - **Basic Styling:** Displays usernames with their Twitch colors.
