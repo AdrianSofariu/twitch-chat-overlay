@@ -100,7 +100,7 @@ function App() {
             addMessageAndSlice(prevMessages, {
               username: "System",
               text: `Disconnected from #${statusData.channel}. ${
-                statusData.reason ? `Reason: ${statusData.reason}` : ""
+                statusData.reason ? `(Reason: ${statusData.reason})` : ""
               }`,
               color: "#FF4500", // Orange Red
             })

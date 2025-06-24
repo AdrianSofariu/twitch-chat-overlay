@@ -193,6 +193,7 @@ async function disconnectFromChannel() {
       sendToRenderer("connection-status", {
         status: "disconnected",
         channel: currentChannel,
+        reason: "User requested disconnect",
       });
       currentChannel = null;
       twitchClient = null;
@@ -203,6 +204,7 @@ async function disconnectFromChannel() {
         status: "disconnected",
         channel: currentChannel,
         error: error.message,
+        reason: "Unexpected error while disconnecting",
       });
       currentChannel = null;
       twitchClient = null;
