@@ -1,5 +1,3 @@
-// twitch-chat-overlay/src/preload/index.js
-
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -25,6 +23,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // Add the new listener
     ipcRenderer.on("connection-status", callback);
   },
+  // Function to start the Twitch OAuth authentication flow
+  startOAuthFlow: () => {
+    // <-- ADDED: OAuth Flow initiator
+    console.log("[Preload] Sending IPC: start-oauth-flow");
+    ipcRenderer.send("start-oauth-flow");
+  },
+  // Function for the renderer to listen for OAuth status messages
+  onOAuthStatus: (callback) => {
+    // <-- ADDED: OAuth Status listener
+    ipcRenderer.removeAllListeners("oauth-status");
+    ipcRenderer.on("oauth-status", callback);
+  },
+  // Function to close the application
   closeApp: () => {
     ipcRenderer.send("close-app");
   },
