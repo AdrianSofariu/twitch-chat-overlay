@@ -1,0 +1,89 @@
+/* The main container for the chat interface, filling the remaining space in App.jsx */
+.chat-page-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Allows it to take all available vertical space */
+  background-color: var(--secondary-bg); /* Main chat background */
+}
+
+.chat-display-area {
+  flex-grow: 1; /* Takes up most of the space within the chat-page-container */
+  overflow-y: auto; /* Enable vertical scrolling for messages */
+  padding: 10px;
+  background-color: var(--secondary-bg); /* Ensure consistent background */
+  border-bottom: 1px solid var(--border-color); /* Separator from controls */
+}
+
+.chat-message {
+  margin-bottom: 5px;
+  word-wrap: break-word; /* Wraps long words to prevent horizontal overflow */
+  color: var(--text-color); /* Default message text color */
+  line-height: 1.4; /* Improve readability */
+}
+
+.chat-message .username {
+  font-weight: bold;
+  margin-right: 5px;
+  user-select: text; /* Allow username to be selected */
+}
+
+/* Styles for system messages (e.g., connect/disconnect, raids) */
+.chat-message.system-message {
+  font-style: italic;
+  color: var(--system-message-text); /* A default for general system messages */
+  background-color: var(--system-message-bg); /* Subtle background */
+  padding: 5px 10px;
+  border-radius: 3px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* Scrollbar styles for Webkit browsers (Chrome, Electron) */
+.chat-display-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-display-area::-webkit-scrollbar-track {
+  background: var(--primary-bg); /* Darker track for scrollbar */
+}
+
+.chat-display-area::-webkit-scrollbar-thumb {
+  background: var(--border-color); /* Muted scroll thumb color */
+  border-radius: 4px;
+}
+
+.chat-display-area::-webkit-scrollbar-thumb:hover {
+  background: #777; /* Slightly lighter on hover */
+}
+
+/* Chat Controls Area */
+.controls {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  background-color: var(--primary-bg); /* Darker background for controls */
+  border-top: 1px solid var(--border-color); /* Separator from chat area */
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+}
+
+.controls div {
+  /* For the connection status text */
+  color: var(--system-message-text);
+  font-size: 0.85em;
+  text-align: center;
+  margin-bottom: 5px;
+  user-select: none;
+}
+
+.controls input[type="text"] {
+  width: calc(100% - 20px); /* Fill width minus padding */
+  margin-bottom: 10px;
+  align-self: center; /* Center input if container is wider */
+  max-width: 400px; /* Optional: limit width of input */
+}
+
+.controls button {
+  width: 100%;
+  max-width: 400px; /* Optional: limit width of button */
+  align-self: center; /* Center button if container is wider */
+}

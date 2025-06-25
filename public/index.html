@@ -4,7 +4,60 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Twitch Chat Overlay</title>
-    <link rel="stylesheet" href="./style.css" />
+    <style>
+      /* Essential global resets and base layout styles for the Electron window */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Prevent scrollbars on the main window */
+      }
+
+      body {
+        /* Default font, will be overridden by theme.css later */
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+        background-color: #1a1a1a; /* A default dark background */
+        color: #f0f0f0; /* Default light text color */
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 100%;
+        /* This ensures the React app fills the entire window */
+      }
+
+      /* Styles for the draggable header */
+      .draggable-header {
+        -webkit-app-region: drag; /* Makes the header draggable */
+        height: 30px; /* Standard height for draggable area */
+        background-color: #282c34; /* A default dark header background */
+        display: flex;
+        justify-content: flex-end; /* Pushes the close button to the right */
+        align-items: center;
+        padding-right: 10px;
+        box-sizing: border-box; /* Include padding in height calculation */
+      }
+
+      .close-button {
+        -webkit-app-region: no-drag; /* Makes the button clickable */
+        background: none;
+        border: none;
+        color: #f0f0f0; /* Match default text color */
+        font-size: 1.2em; /* Slightly larger for visibility */
+        cursor: pointer;
+        padding: 5px;
+        line-height: 1; /* Prevents extra vertical space */
+        transition: color 0.2s ease;
+      }
+
+      .close-button:hover {
+        color: red; /* Simple hover effect */
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

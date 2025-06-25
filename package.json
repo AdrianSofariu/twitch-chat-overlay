@@ -17,13 +17,17 @@
     "@babel/preset-react": "^7.27.1",
     "babel-loader": "^10.0.0",
     "copy-webpack-plugin": "^13.0.0",
+    "css-loader": "^7.1.2",
     "electron": "^36.5.0",
     "electron-reloader": "^1.2.3",
     "html-webpack-plugin": "^5.6.3",
+    "style-loader": "^4.0.0",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
+    "dotenv": "^16.5.0",
+    "node-fetch": "^2.7.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tmi.js": "^1.8.5"

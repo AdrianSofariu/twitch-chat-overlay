@@ -1,0 +1,13 @@
+/* Universal Box-Sizing for consistency */
+* {
+  box-sizing: border-box;
+}
+
+/* Utility classes for general success/error messages */
+.success {
+  color: var(--success-color, #4caf50); /* Uses theme variable, with fallback */
+}
+
+.error {
+  color: var(--error-color, #f44336); /* Uses theme variable, with fallback */
+}

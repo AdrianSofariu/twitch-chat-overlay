@@ -19,7 +19,10 @@ module.exports = {
         use: {
           loader: "babel-loader",
           options: {
-            presets: ["@babel/preset-env", "@babel/preset-react"],
+            presets: [
+              "@babel/preset-env",
+              ["@babel/preset-react", { runtime: "automatic" }],
+            ],
           },
         },
       },
@@ -41,17 +44,6 @@ module.exports = {
       template: "./public/index.html", // Path to your source HTML template
       filename: "index.html", // Output HTML file name (in 'dist' folder)
       inject: "body", // Inject script tag into the <body>
-    }),
-    // Copies static assets from 'public' to 'dist'
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: "public/style.css", // Source path
-          to: "style.css", // Destination path in 'dist/'
-        },
-        // Add other static assets like images or fonts here if needed
-        // { from: 'public/assets/', to: 'assets/' },
-      ],
     }),
   ],
   target: "electron-renderer", // Important for Webpack to correctly bundle for Electron's renderer process

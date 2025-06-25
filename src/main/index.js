@@ -1,21 +1,28 @@
-// twitch-chat-overlay/src/main/index.js
-
 try {
   require("electron-reloader")(module);
+  require("dotenv").config();
 } catch (_) {}
-const { app, BrowserWindow, screen, ipcMain } = require("electron");
+
+const { app, BrowserWindow, screen, ipcMain, shell } = require("electron");
 const path = require("path");
 const twitchChatService = require("./services/twitchChatService");
+const oauthServer = require("./services/oauthServer");
+const config = require("../config");
 
+// Main window reference
 let mainWindow;
 
+/**
+ * Creates the main application window.
+ * Sets up the window properties, loads the HTML file, and initializes services.
+ */
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
 
   const windowWidth = 350;
-  const windowHeight = 200; // Initial smaller height for just input
-  const windowX = width - windowWidth - 20;
+  const windowHeight = 400; // Initial smaller height for just input
+  const windowX = width - windowWidth - 40;
   const windowY = 20;
 
   mainWindow = new BrowserWindow({
@@ -41,12 +48,70 @@ function createWindow() {
   // Intialize Twitch chat service with the main window reference
   twitchChatService.initialize(mainWindow);
 
+  // Initialize OAuth server with the main window reference
+  oauthServer.initializeOAuthServer(
+    mainWindow,
+    {
+      clientId: config.TWITCH_CLIENT_ID,
+      clientSecret: config.TWITCH_CLIENT_SECRET,
+      redirectPort: config.OAUTH_REDIRECT_PORT,
+      redirectUri: config.OAUTH_REDIRECT_URI,
+    },
+    // Callback for successful OAuth
+    (authData) => {
+      console.log(`[Main Process] OAuth successful for ${authData.username}!`);
+
+      // Notify the renderer process of successful authentication
+      mainWindow.webContents.send("oauth-status", {
+        success: true,
+        username: authData.username,
+        message: "Authentication successful!",
+      });
+
+      // After successful OAuth, load the main chat page
+      const chatWindowWidth = 400;
+      const chatWindowHeight = 600;
+      mainWindow.setSize(chatWindowWidth, chatWindowHeight);
+      mainWindow.setMinimumSize(250, 150);
+
+      console.log("[Main Process] Loaded chat after OAuth.");
+    },
+    // Callback for OAuth failure
+    (errorMessage) => {
+      console.error(`[Main Process] OAuth failed: ${errorMessage}`);
+      oauthServer.clearAuthDetails(); // Clear auth details on failure
+      mainWindow.webContents.send("oauth-status", {
+        success: false,
+        error: errorMessage,
+      });
+    }
+  );
+
   // --- IPC Main Process Listener for Twitch Connection ---
   ipcMain.on("connect-to-twitch", async (event, channelName) => {
     console.log(
       `[Main Process] Received request to connect to Twitch channel: ${channelName}`
     );
-    await twitchChatService.connectToChannel(channelName);
+    const authDetails = oauthServer.getAuthDetails();
+
+    if (authDetails && authDetails.token && authDetails.username) {
+      await twitchChatService.connectToChannel(channelName, authDetails);
+    } else {
+      console.warn(
+        "[Main Process] Attempted to connect to Twitch chat without authentication."
+      );
+      mainWindow.webContents.send("connection-status", {
+        status: "error",
+        channel: channelName,
+        error: "Authentication required to connect to chat.",
+      });
+      mainWindow.webContents.send("chat-message", {
+        username: "System",
+        text: "Connection failed: Please authenticate with Twitch first.",
+        color: "#FF0000",
+        isSystem: true,
+      });
+    }
   });
 
   // --- IPC Main Process Listener for Twitch Disconnection ---
@@ -62,13 +127,51 @@ function createWindow() {
     }
   });
 
+  // --- IPC Main Process Listener for Twitch OAuth URL ---
+  ipcMain.on("start-oauth-flow", (event) => {
+    if (!config.TWITCH_CLIENT_ID) {
+      console.error("TWITCH_CLIENT_ID is not set in .env file.");
+      event.reply("oauth-status", {
+        success: false,
+        error: "Client ID missing.",
+      });
+      return;
+    }
+
+    const scopes = [
+      "chat:read",
+      "chat:edit",
+      "channel:moderate",
+      "user:read:email",
+    ].join(" ");
+
+    const twitchAuthUrl = `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=${
+      config.TWITCH_CLIENT_ID
+    }&redirect_uri=${encodeURIComponent(
+      config.OAUTH_REDIRECT_URI
+    )}&scope=${encodeURIComponent(scopes)}`;
+
+    shell.openExternal(twitchAuthUrl);
+    console.log(`[Main] Opened Twitch Auth URL: ${twitchAuthUrl}`);
+
+    event.reply("oauth-flow-initiated", {
+      message:
+        "OAuth flow started. Please complete the authorization in your browser.",
+    });
+
+    //Start the OAuth redirect server
+    oauthServer.startOAuthServer();
+  });
+
   // --- Window Event Handlers ---
   mainWindow.on("closed", () => {
     twitchChatService.disconnectFromChannel(); // Ensure we disconnect when the window is closed
+    oauthServer.stopOAuthServer();
     mainWindow = null;
   });
 }
 
+// --- Electron App Lifecycle Events ---
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
@@ -81,4 +184,8 @@ app.on("activate", () => {
   if (mainWindow === null) {
     createWindow();
   }
+});
+
+app.on("quit", () => {
+  oauthServer.stopOAuthServer();
 });
