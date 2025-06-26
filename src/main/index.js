@@ -6,6 +6,7 @@ try {
 const { app, BrowserWindow, screen, ipcMain, shell } = require("electron");
 const path = require("path");
 const twitchChatService = require("./services/twitchChatService");
+const sevenTvService = require("./services/sevenTvService");
 const oauthServer = require("./services/oauthServer");
 const config = require("../config");
 
@@ -48,6 +49,9 @@ function createWindow() {
   // Intialize Twitch chat service with the main window reference
   twitchChatService.initialize(mainWindow);
 
+  // Initialize 7TV service with the main window reference
+  sevenTvService.initialize(mainWindow);
+
   // Initialize OAuth server with the main window reference
   oauthServer.initializeOAuthServer(
     mainWindow,
@@ -68,6 +72,9 @@ function createWindow() {
         message: "Authentication successful!",
       });
 
+      // Start automatic token refresh
+      oauthServer.startTokenAutoRefresh();
+
       // After successful OAuth, load the main chat page
       const chatWindowWidth = 400;
       const chatWindowHeight = 600;
@@ -80,6 +87,7 @@ function createWindow() {
     (errorMessage) => {
       console.error(`[Main Process] OAuth failed: ${errorMessage}`);
       oauthServer.clearAuthDetails(); // Clear auth details on failure
+      oauthServer.stopTokenAutoRefresh();
       mainWindow.webContents.send("oauth-status", {
         success: false,
         error: errorMessage,
@@ -95,6 +103,19 @@ function createWindow() {
     const authDetails = oauthServer.getAuthDetails();
 
     if (authDetails && authDetails.token && authDetails.username) {
+      // Fetch user ID for the channel and load 7TV channel emotes
+      const twitchUserId = await sevenTvService.getTwitchUserId(
+        channelName,
+        authDetails.token
+      );
+      if (twitchUserId) {
+        await sevenTvService.fetchChannelEmotes(twitchUserId);
+      } else {
+        console.warn(
+          `[Main Process] Could not get Twitch User ID for ${channelName}. 7TV channel emotes may not load.`
+        );
+      }
+      // Connect to the Twitch channel with the provided auth details
       await twitchChatService.connectToChannel(channelName, authDetails);
     } else {
       console.warn(
@@ -166,6 +187,7 @@ function createWindow() {
   // --- Window Event Handlers ---
   mainWindow.on("closed", () => {
     twitchChatService.disconnectFromChannel(); // Ensure we disconnect when the window is closed
+    oauthServer.stopTokenAutoRefresh(); // Stop token refresh on close
     oauthServer.stopOAuthServer();
     mainWindow = null;
   });
@@ -187,5 +209,6 @@ app.on("activate", () => {
 });
 
 app.on("quit", () => {
+  oauthServer.stopTokenAutoRefresh(); // Stop token refresh on app quit
   oauthServer.stopOAuthServer();
 });

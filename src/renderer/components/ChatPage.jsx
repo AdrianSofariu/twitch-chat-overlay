@@ -1,5 +1,12 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 import "./ChatPage.css"; // Import styles for the chat page
+import "../styles/EmoteStyles.css"; // Styles for 7TV emotes
 
 const MAX_MESSAGES = 300; // Keep only the most recent 500 messages for performance
 
@@ -52,6 +59,34 @@ function ChatPage({ authenticatedUsername }) {
 
   // Track if the user was at the bottom before new messages
   const wasAtBottomRef = useRef(true);
+
+  // States to store the cached 7TV emotes
+  const [global7TvEmotes, setGlobal7TvEmotes] = useState(new Map()); // Map<name, url>
+  const [channel7TvEmotes, setChannel7TvEmotes] = useState(new Map()); // Map<name, url>
+
+  /**
+   * Callback to fetch and set the initial 7TV global and channel emotes.
+   * This function is called once when the component mounts to ensure we have the latest emotes
+   */
+  const fetchAndSetInitial7TvEmotes = useCallback(async () => {
+    try {
+      if (!window.electronAPI) {
+        console.error("electronAPI is not available. Cannot fetch 7TV emotes.");
+        return;
+      }
+      console.log("[Renderer] Attempting to fetch initial 7TV emotes...");
+      const globalEmotes = await window.electronAPI.get7TvGlobalEmotes();
+      const channelEmotes = await window.electronAPI.get7TvChannelEmotes();
+
+      setGlobal7TvEmotes(new Map(globalEmotes));
+      setChannel7TvEmotes(new Map(channelEmotes));
+      console.log(
+        `[Renderer] Fetched ${globalEmotes.length} global and ${channelEmotes.length} channel 7TV emotes.`
+      );
+    } catch (error) {
+      console.error("[Renderer] Error fetching initial 7TV emotes:", error);
+    }
+  }, [setGlobal7TvEmotes, setChannel7TvEmotes]); // Dependencies: state setters (React guarantees these are stable reference)
 
   /**
    * useEffect hook for setting up IPC listeners from the main process.
@@ -125,6 +160,17 @@ function ChatPage({ authenticatedUsername }) {
           );
         }
       });
+
+      // Register a listener for 7TV global emotes updates
+      window.electronAPI.on7TvEmotesUpdate((_event, emotesData) => {
+        console.log("[Renderer] Received 7TV Emotes Update:", emotesData);
+        // Convert array of [name, url] back to Map for efficient lookup
+        setGlobal7TvEmotes(new Map(emotesData.globalEmotes));
+        setChannel7TvEmotes(new Map(emotesData.channelEmotes));
+      });
+
+      //Initial fetch for 7TV Emotes on component mount
+      fetchAndSetInitial7TvEmotes();
     } else {
       console.error(
         "electronAPI is not available! Cannot listen for chat messages or connection status."
@@ -134,7 +180,7 @@ function ChatPage({ authenticatedUsername }) {
     return () => {
       // Cleanup
     };
-  }, []);
+  }, [fetchAndSetInitial7TvEmotes]);
 
   /**
    * useLayoutEffect hook for auto-scrolling the chat display area.
@@ -157,7 +203,12 @@ function ChatPage({ authenticatedUsername }) {
     }
   }, [messages]);
 
-  // useEffect to listen for manual user scrolls and update wasAtBottomRef
+  /**
+   * useEffect hook to handle scroll events in the chat container.
+   * This effect sets up an event listener to detect when the user scrolls the chat display area.
+   * It updates the `wasAtBottomRef` to track whether the user is currently at or near the bottom of the chat display area.
+   * This is crucial for determining whether to auto-scroll when new messages arrive.
+   */
   useEffect(() => {
     const chatContainer = chatContainerRef.current;
     if (!chatContainer) return;
@@ -191,6 +242,59 @@ function ChatPage({ authenticatedUsername }) {
       chatContainer.removeEventListener("scroll", handleScroll);
     };
   }, []);
+
+  /**
+   * Formats a message text by replacing recognized 7TV emotes with corresponding image tags.
+   * It checks both channel-specific and global 7TV emotes, prioritizing channel emotes.
+   * If a word matches an emote, it replaces it with an <img> tag with the emote's URL.
+   * If no emote matches, it returns the word as plain text.
+   * @param {string} text
+   * @returns
+   */
+  const formatMessageWithEmotes = (text) => {
+    if (!text) return null;
+
+    const words = text.split(/\s+/); // Split by whitespace to get individual words
+    const processedContent = [];
+
+    words.forEach((word, index) => {
+      let emoteUrl = null;
+
+      // Prioritize channel emotes over global emotes
+      if (channel7TvEmotes.has(word)) {
+        emoteUrl = channel7TvEmotes.get(word);
+      } else if (global7TvEmotes.has(word)) {
+        emoteUrl = global7TvEmotes.get(word);
+      }
+
+      if (emoteUrl) {
+        // If it's an emote, add an img tag
+        // Ensure 'https:' prefix if the URL might be protocol-relative (starts with //)
+        const fullEmoteUrl = emoteUrl.startsWith("//")
+          ? `https:${emoteUrl}`
+          : emoteUrl;
+        processedContent.push(
+          <img
+            key={`${word}-${index}`}
+            src={fullEmoteUrl}
+            alt={word}
+            className="chat-emote 7tv-emote" // Add classes for styling
+            title={word} // Show emote name on hover
+          />
+        );
+      } else {
+        // If it's not an emote, add the word as text
+        processedContent.push(word);
+      }
+
+      // Add a space after each word except the last one
+      if (index < words.length - 1) {
+        processedContent.push(" ");
+      }
+    });
+
+    return <>{processedContent}</>; // Return a React Fragment
+  };
 
   /**
    * Handles the click event for the "Connect" / "Disconnect" button.
@@ -277,7 +381,7 @@ function ChatPage({ authenticatedUsername }) {
             >
               {msg.username}:
             </span>{" "}
-            {msg.text}
+            {msg.isSystem ? msg.text : formatMessageWithEmotes(msg.text)}
           </p>
         ))}
       </div>

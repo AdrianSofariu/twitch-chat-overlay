@@ -218,6 +218,108 @@ function startOAuthServer() {
   });
 }
 
+// Interval ID for auto-refreshing the token
+let refreshIntervalId = null;
+
+/**
+ * Function to automatically refresh the access token using the stored refresh token.
+ * This function uses the refresh token to obtain a new access token from Twitch.
+ * It updates the currentAuthDetails with the new token and refresh token.
+ * @param {number} intervalMs - The interval in milliseconds for auto-refreshing the token (default is 3.5 hours).
+ */
+async function refreshAccessToken() {
+  // <--- NEW: Moved refresh logic to a separate function
+  if (!currentAuthDetails || !currentAuthDetails.refreshToken) {
+    console.warn(
+      "[OAuthServer] No refresh token available to refresh access token."
+    );
+    throw new Error("No refresh token available.");
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.append("client_id", twitchClientId);
+    params.append("client_secret", twitchClientSecret);
+    params.append("grant_type", "refresh_token");
+    params.append("refresh_token", currentAuthDetails.refreshToken);
+
+    const response = await fetch("https://id.twitch.tv/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: "Unknown error parsing refresh response." }));
+      throw new Error(
+        `Twitch API Error (Refresh Token): ${response.status} - ${
+          errorData.message || JSON.stringify(errorData)
+        }`
+      );
+    }
+
+    const tokenData = await response.json();
+    // Update both the access token and the refresh token (Twitch can issue new refresh tokens)
+    currentAuthDetails.token = tokenData.access_token;
+    currentAuthDetails.refreshToken = tokenData.refresh_token; // <--- IMPORTANT: Update refresh token too
+    console.log(
+      `[OAuthServer] Access token refreshed. New token: ${currentAuthDetails.token.substring(
+        0,
+        10
+      )}...`
+    );
+    return currentAuthDetails.token; // Return the new access token
+  } catch (error) {
+    console.error("[OAuthServer] Error refreshing access token:", error);
+    // On critical refresh failure, clear all auth details and notify renderer
+    currentAuthDetails = null;
+    if (onOAuthFailureCallback) {
+      onOAuthFailureCallback(`Authentication expired. Please re-authenticate.`);
+    }
+    throw error; // Re-throw to propagate the error
+  }
+}
+
+function startTokenAutoRefresh(intervalMs = 3.5 * 60 * 60 * 1000) {
+  if (refreshIntervalId) return; // Prevent multiple intervals
+
+  // Initial refresh after a short delay, then recurring
+  refreshIntervalId = setInterval(async () => {
+    if (!currentAuthDetails || !currentAuthDetails.refreshToken) {
+      console.warn(
+        "[OAuthServer] No refresh token for auto-refresh. Stopping auto-refresh."
+      );
+      stopTokenAutoRefresh(); // Stop if no refresh token
+      return;
+    }
+    try {
+      await refreshAccessToken(); // Call the dedicated refresh function
+      // Optionally, you could send an IPC to the renderer indicating a successful refresh,
+      // but it's usually handled silently in the background.
+    } catch (err) {
+      console.warn("[OAuthServer] Failed to auto-refresh token:", err.message);
+      // The refreshAccessToken function already clears authDetails and calls onOAuthFailureCallback on critical failure.
+      stopTokenAutoRefresh(); // Stop the interval on failure
+    }
+  }, intervalMs);
+
+  console.log(
+    `[OAuthServer] Started auto token refresh every ${
+      intervalMs / 1000 / 60
+    } minutes.`
+  );
+}
+
+function stopTokenAutoRefresh() {
+  if (refreshIntervalId) {
+    clearInterval(refreshIntervalId);
+    refreshIntervalId = null;
+    console.log("[OAuthServer] Stopped auto token refresh.");
+  }
+}
+
 /**
  * Stops the local HTTP server.
  */
@@ -249,4 +351,6 @@ module.exports = {
   stopOAuthServer,
   getAuthDetails,
   clearAuthDetails,
+  startTokenAutoRefresh,
+  stopTokenAutoRefresh,
 };

@@ -35,6 +35,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.removeAllListeners("oauth-status");
     ipcRenderer.on("oauth-status", callback);
   },
+  // Functions to get 7TV global and channel emotes
+  get7TvGlobalEmotes: () => ipcRenderer.invoke("get-7tv-global-emotes"),
+  get7TvChannelEmotes: () => ipcRenderer.invoke("get-7tv-channel-emotes"),
+  // Function to listen for 7TV emotes updates
+  on7TvEmotesUpdate: (callback) =>
+    ipcRenderer.on("7tv-emotes-update", callback),
   // Function to close the application
   closeApp: () => {
     ipcRenderer.send("close-app");
