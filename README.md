@@ -1,8 +1,7 @@
 # Twitch Chat Overlay (Electron)
 
 A simple, customizable Twitch chat overlay built with Electron, React, and TMI.js. This application runs as a lightweight, always-on-top, borderless window, designed to display live chat from any Twitch channel.
-
-UPCOMING: 7TV support, interaction using Twitch HELIX api
+The app supports 7TV channel emotes and allows interaction with the chat by sending messages directly from the overlay using Twitch HELIX api and oauth.
 
 ## Features
 
@@ -12,6 +11,8 @@ UPCOMING: 7TV support, interaction using Twitch HELIX api
 - **System Messages:** Provides clear feedback on connection status (connecting, connected, disconnected, errors).
 - **Basic Styling:** Displays usernames with their Twitch colors.
 - **Auto-Scrolling:** Automatically scrolls to the newest messages, with smart behavior to avoid scrolling if the user is reviewing older messages.
+- **Message Sending:** Allows users to send messages directly from the overlay, with support for Twitch's HELIX API and OAuth for authentication.
+- **7TV Emotes Support:** Displays 7TV channel emotes in the chat messages.
 
 ## Technologies Used
 
@@ -19,6 +20,8 @@ UPCOMING: 7TV support, interaction using Twitch HELIX api
 - [React](https://react.dev/): For building the user interface.
 - [Webpack](https://webpack.js.org/): For bundling the application's assets.
 - [TMI.js](https://tmijs.com/): A powerful Twitch IRC client library for Node.js, used for connecting to Twitch chat.
+- [7TV](https://7tv.app/): Uses 7TV GraphQL api for enhanced emote support in Twitch chat.
+- [Twitch HELIX API](https://dev.twitch.tv/docs/api/): For sending messages and managing OAuth authentication.
 
 ## Installation
 
@@ -51,7 +54,8 @@ npm start
 1. **Enter Channel Name:** In the overlay window, type the exact channel name of an ongoing Twitch livestream you wish to monitor.
 2. **Connect:** Click the **"Connect to Chat"** button.
 3. **View Chat:** If successful, chat messages from that stream will begin to appear in real-time.
-4. **Disconnect or Switch:** Click the **"Disconnect"** button to stop receiving messages, or enter a new channel name to switch to a different stream.
-5. **Close the App:** Use the **"X"** button in the top-right corner to close the application.
+4. **Send Messages:** Type your message in the input field at the bottom and press **"Send"** to post it to the Twitch chat.
+5. **Disconnect** Click the **"Disconnect"** button to stop receiving messages, and enter a new channel name to switch to a different stream.
+6. **Close the App:** Use the **"X"** button in the top-right corner to close the application.
 
-Enjoy your customizable Twitch chat overlay!
+Enjoy your Twitch chat overlay!
