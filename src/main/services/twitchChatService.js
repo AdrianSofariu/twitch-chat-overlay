@@ -29,6 +29,33 @@ function sendToRenderer(channel, data) {
 }
 
 /**
+ * Sends chat message data to the renderer process.
+ * This is a utility function used for regular chat and system messages.
+ * @param {string} username
+ * @param {string} text
+ * @param {string} color
+ * @param {boolean} isSystem - True if this is a system message (for specific styling/logic in renderer)
+ * @param {boolean} isAction - True if it's an /me message
+ */
+function sendChatMessage(
+  username,
+  text,
+  color,
+  isSystem = false,
+  isAction = false
+) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("chat-message", {
+      username,
+      text,
+      color,
+      isSystem,
+      isAction,
+    });
+  }
+}
+
+/**
  * Calculates the luminance of a hex color (0-255 range).
  * A lower value means darker.
  * @param {string} hex The hex color string (e.g., "#RRGGBB").
@@ -329,6 +356,54 @@ async function connectToChannel(channelName, authDetails) {
     sendToRenderer("chat-message", messageData);
   });
 
+  // -- Handle Twitch IRC notices
+  twitchClient.on("notice", (channel, msgid, message) => {
+    let systemMessageText = message; // Default to the message provided by Twitch
+    let systemMessageColor = "#FFA500"; // Default orange for warnings
+
+    // Customize messages and colors based on common msgid types
+    switch (msgid) {
+      case "msg_banned":
+      case "msg_channel_suspended":
+        systemMessageText = `You are banned from #${channel} chat.`;
+        systemMessageColor = "#DC143C"; // Crimson red
+        break;
+      case "msg_duplicate":
+        systemMessageText = `Your message was not sent: Duplicate message (try adding a space or changing slightly).`;
+        break;
+      case "msg_followed":
+        systemMessageText = `This channel is in followers-only mode. You must be following for longer to chat.`;
+        break;
+      case "msg_slowmode":
+        systemMessageText = `This channel is in slow mode. Please wait a moment before sending another message.`;
+        break;
+      case "msg_subsonly":
+        systemMessageText = `This channel is in subscribers-only mode.`;
+        systemMessageColor = "#8A2BE2"; // Blue Violet
+        break;
+      case "msg_ratelimit":
+        systemMessageText = `You are sending messages too fast (rate limit exceeded).`;
+        break;
+      case "msg_emoteonly":
+        systemMessageText = `This channel is in emote-only mode.`;
+        break;
+      case "msg_r9k":
+        systemMessageText = `This channel is in R9K (9K-message) mode. Your message was too similar to recent messages.`;
+        break;
+      case "msg_bad_words": // This is for AutoMod
+        systemMessageText = `Your message was not sent: Blocked by AutoMod.`;
+        systemMessageColor = "#DC143C"; // Crimson red
+        break;
+      // Add more cases as you discover relevant msgids from Twitch
+      default:
+        console.log(`[TwitchChatService] Unhandled notice msgid: ${msgid}`);
+        break;
+    }
+
+    // Send this system message to the renderer to be displayed in chat
+    sendChatMessage("System", systemMessageText, systemMessageColor, true);
+  });
+
   // Connect
   try {
     await twitchClient.connect();
@@ -391,10 +466,49 @@ function getStatus() {
   };
 }
 
+/**
+ * Sends a chat message to the currently connected Twitch channel.
+ * @param {string} message The message to send.
+ * @returns {Promise<boolean>} True if message was sent successfully, false otherwise.
+ */
+async function sendMessage(message) {
+  if (twitchClient && twitchClient.readyState() === "OPEN" && currentChannel) {
+    try {
+      await twitchClient.say(currentChannel, message);
+      console.log(
+        `[TwitchChatService] Message sent to ${currentChannel}: ${message}`
+      );
+      return true; // Message sent successfully
+    } catch (error) {
+      console.error(`[TwitchChatService] Error sending message:`, error);
+      sendToRenderer("chat-message", {
+        username: "System",
+        text: `Error sending message: ${error.message}`,
+        color: "#FF0000",
+        isSystem: true,
+      });
+      return false; // Failed to send message
+    }
+  } else {
+    console.warn(
+      "[TwitchChatService] Cannot send message: Client not connected or channel not set."
+    );
+    // Inform the renderer that the message couldn't be sent due to connection status
+    sendToRenderer("chat-message", {
+      username: "System",
+      text: "Cannot send message: Not connected to a channel.",
+      color: "#FF4500",
+      isSystem: true,
+    });
+    return false;
+  }
+}
+
 // Export the functions for use in other modules
 module.exports = {
   initialize,
   connectToChannel,
   disconnectFromChannel,
   getStatus,
+  sendMessage,
 };

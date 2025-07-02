@@ -56,6 +56,15 @@
   background: #777; /* Slightly lighter on hover */
 }
 
+/* Styling for the authenticated user status message */
+.authenticated-user-status {
+  color: var(--system-message-text);
+  font-size: 0.85em;
+  text-align: center;
+  margin-bottom: 5px;
+  user-select: none;
+}
+
 /* Chat Controls Area */
 .controls {
   display: flex;
@@ -64,15 +73,6 @@
   background-color: var(--primary-bg); /* Darker background for controls */
   border-top: 1px solid var(--border-color); /* Separator from chat area */
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3); /* Subtle shadow */
-}
-
-.controls div {
-  /* For the connection status text */
-  color: var(--system-message-text);
-  font-size: 0.85em;
-  text-align: center;
-  margin-bottom: 5px;
-  user-select: none;
 }
 
 .controls input[type="text"] {
@@ -86,4 +86,26 @@
   width: 100%;
   max-width: 400px; /* Optional: limit width of button */
   align-self: center; /* Center button if container is wider */
+  margin-bottom: 10px;
+}
+
+/* Styles for the message input area (input field + send button) */
+.message-input-area {
+  display: flex; /* Make it a flex container to align items horizontally */
+  gap: 10px; /* Space between the input and the button */
+  margin-bottom: 10px; /* Space below this entire message input area */
+  width: 100%;
+  max-width: 400px; /* Match max-width of other controls */
+  align-self: center; /* Center the container itself */
+  align-items: center; /* Vertically center items within the flex container */
+}
+
+.message-input-area input {
+  flex-grow: 1; /* Allow the input field to take up most of the available space */
+  width: auto; /* Override the previous 100% width rule for individual input */
+}
+
+.message-input-area button {
+  flex-shrink: 0; /* Prevent the button from shrinking */
+  width: auto; /* Allow the button to size based on its content and padding */
 }

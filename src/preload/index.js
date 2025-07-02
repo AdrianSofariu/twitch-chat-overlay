@@ -25,13 +25,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   // Function to start the Twitch OAuth authentication flow
   startOAuthFlow: () => {
-    // <-- ADDED: OAuth Flow initiator
     console.log("[Preload] Sending IPC: start-oauth-flow");
     ipcRenderer.send("start-oauth-flow");
   },
   // Function for the renderer to listen for OAuth status messages
   onOAuthStatus: (callback) => {
-    // <-- ADDED: OAuth Status listener
     ipcRenderer.removeAllListeners("oauth-status");
     ipcRenderer.on("oauth-status", callback);
   },
@@ -41,6 +39,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Function to listen for 7TV emotes updates
   on7TvEmotesUpdate: (callback) =>
     ipcRenderer.on("7tv-emotes-update", callback),
+  // Function to send a message to the main process
+  sendMessage: (message) => {
+    console.log(`[Preload] Sending IPC: send-message: ${message}`);
+    ipcRenderer.send("send-message", message);
+  },
   // Function to close the application
   closeApp: () => {
     ipcRenderer.send("close-app");

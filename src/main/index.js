@@ -141,6 +141,30 @@ function createWindow() {
     await twitchChatService.disconnectFromChannel();
   });
 
+  // --- IPC Main Process Listener for Sending Messages ---
+  ipcMain.on("send-message", (event, message) => {
+    console.log(`[Main Process] Received message to send: ${message}`);
+    try {
+      const success = twitchChatService.sendMessage(message);
+      if (!success) {
+        mainWindow.webContents.send("chat-message", {
+          username: "System",
+          text: "Failed to send message. Please check your connection.",
+          color: "#FF0000",
+          isSystem: true,
+        });
+      }
+    } catch (error) {
+      console.error(`[Main Process] Error sending message: ${error.message}`);
+      mainWindow.webContents.send("chat-message", {
+        username: "System",
+        text: `Error sending message: ${error.message || "Unknown error"}`,
+        color: "#DC143C",
+        isSystem: true,
+      });
+    }
+  });
+
   // --- IPC Main Process Listener for Close App Button ---
   ipcMain.on("close-app", () => {
     if (mainWindow) {

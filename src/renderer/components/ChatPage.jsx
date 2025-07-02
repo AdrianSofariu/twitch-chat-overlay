@@ -64,6 +64,9 @@ function ChatPage({ authenticatedUsername }) {
   const [global7TvEmotes, setGlobal7TvEmotes] = useState(new Map()); // Map<name, url>
   const [channel7TvEmotes, setChannel7TvEmotes] = useState(new Map()); // Map<name, url>
 
+  // State to store the current message being typed by the user
+  const [messageInput, setMessageInput] = useState("");
+
   /**
    * Callback to fetch and set the initial 7TV global and channel emotes.
    * This function is called once when the component mounts to ensure we have the latest emotes
@@ -370,6 +373,75 @@ function ChatPage({ authenticatedUsername }) {
     }
   };
 
+  /**
+   * Handles sending a message to the currently connected Twitch channel.
+   * This function gets the message from state, sends it via Electron API,
+   * optimistically adds it to the chat display, and clears the input.
+   */
+  const handleSendMessage = async () => {
+    const trimmedMessage = messageInput.trim();
+
+    // Check if the message is empty or if we are not connected
+    if (!trimmedMessage || !isConnected) {
+      console.warn("[Renderer] Cannot send empty message or not connected.");
+      return;
+    }
+
+    if (window.electronAPI && window.electronAPI.sendMessage) {
+      // Optimistically add the message to the chat display
+      setMessages((prevMessages) =>
+        addMessageAndSlice(prevMessages, {
+          username: authenticatedUsername, // Use the authenticated user's name
+          text: trimmedMessage,
+          color: "#90EE90", // LightGreen for your own messages
+          isSelf: true, // A flag to style your own messages differently
+        })
+      );
+
+      // Send the message to the main process
+      try {
+        await window.electronAPI.sendMessage(trimmedMessage);
+        setMessageInput(""); // Clear the input field after sending
+      } catch (error) {
+        console.error(
+          "[Renderer] Error sending message via electronAPI:",
+          error
+        );
+        setMessages((prevMessages) =>
+          addMessageAndSlice(prevMessages, {
+            username: "System",
+            text: `Failed to send message: ${
+              error.message || "Unknown error."
+            }`,
+            color: "#DC143C", // Crimson
+            isSystem: true,
+          })
+        );
+      }
+    } else {
+      console.error("electronAPI.sendMessage is not available.");
+      setMessages((prevMessages) =>
+        addMessageAndSlice(prevMessages, {
+          username: "System",
+          text: "Message sending failed: Electron API not available.",
+          color: "#DC143C",
+          isSystem: true,
+        })
+      );
+    }
+  };
+
+  /**
+   * Handles 'keydown' events for the message input field.
+   * Triggers message sending when the 'Enter' key is pressed.
+   * @param {KeyboardEvent} event The keyboard event object.
+   */
+  const handleMessageInputKeyDown = (event) => {
+    if (event.key === "Enter") {
+      handleSendMessage();
+    }
+  };
+
   return (
     <>
       <div className="chat-display-area" ref={chatContainerRef}>
@@ -414,9 +486,29 @@ function ChatPage({ authenticatedUsername }) {
             </button>
           </>
         ) : (
-          <button id="disconnectButton" onClick={handleConnectToggle}>
-            Disconnect from #{channelName.trim()}
-          </button>
+          <>
+            <div className="message-input-area">
+              <input
+                type="text"
+                id="messageInput"
+                placeholder="Type your message..."
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                onKeyDown={handleMessageInputKeyDown} // Send on Enter
+                disabled={!isConnected} // Disable if not connected
+              />
+              <button
+                id="sendMessageButton"
+                onClick={handleSendMessage}
+                disabled={!isConnected || messageInput.trim() === ""} // Disable if not connected or message is empty
+              >
+                Send
+              </button>
+            </div>
+            <button id="disconnectButton" onClick={handleConnectToggle}>
+              Disconnect from #{channelName.trim()}
+            </button>
+          </>
         )}
       </div>
     </>
