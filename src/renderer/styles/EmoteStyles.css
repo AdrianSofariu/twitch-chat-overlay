@@ -1,15 +1,12 @@
-/* src/renderer/EmoteStyles.css */
-
 .chat-message .chat-emote {
-  height: 28px; /* Adjust size as needed, 28px is a good starting point for Twitch chat */
-  width: auto; /* Maintain aspect ratio */
-  vertical-align: middle; /* Align with text baseline */
-  margin: 0 2px; /* Small spacing around emotes */
-  display: inline-block; /* Ensure it respects vertical-align and margin */
-  user-select: none; /* Prevent selection of the image */
+  height: 28px; 
+  width: auto; 
+  vertical-align: middle;
+  margin: 0 2px;
+  display: inline-block;
+  user-select: none;
 }
 
-/* Optional: Add a subtle hover effect */
 .chat-message .chat-emote:hover {
   transform: scale(1.05);
   transition: transform 0.1s ease-in-out;
