@@ -89,99 +89,128 @@ function ChatPage({ authenticatedUsername }) {
     } catch (error) {
       console.error("[Renderer] Error fetching initial 7TV emotes:", error);
     }
-  }, [setGlobal7TvEmotes, setChannel7TvEmotes]); // Dependencies: state setters (React guarantees these are stable reference)
+  }, [setGlobal7TvEmotes, setChannel7TvEmotes]);
 
+  // ...existing code...
   /**
    * useEffect hook for setting up IPC listeners from the main process.
    * This effect runs once on component mount and sets up listeners for:
    * - Incoming chat messages (`onChatMessage`)
    * - Connection status updates (`onConnectionStatus`)
+   * Uses unsubscribe functions returned by preload for proper cleanup.
    */
   useEffect(() => {
-    if (window.electronAPI) {
-      // Register a listener for 'chat-message' events sent from the main process
-      // The callback receives the message data (username, text, color, etc.)
-      window.electronAPI.onChatMessage((_event, message) => {
-        console.log(`[Renderer] Received chat message:`, message);
-
-        setMessages((prevMessages) =>
-          addMessageAndSlice(prevMessages, message)
-        );
-      });
-
-      // Register a listener for connection-status events sent from the main process
-      window.electronAPI.onConnectionStatus((_event, statusData) => {
-        console.log(`[Renderer] Connection status:`, statusData);
-
-        if (statusData.status === "connected") {
-          // -- CONNECTED
-          setIsConnected(true);
-          setIsConnecting(false);
-
-          setMessages((prevMessages) => {
-            const newStatusMessage = {
-              username: "System",
-              text: `Successfully connected to #${statusData.channel}!`,
-              color: "#32CD32", // Lime Green
-            };
-            // If only the initial "Enter channel" message is present, replace it with new status.
-            // Otherwise, just append the connection success message via helper.
-            if (
-              prevMessages.length === 1 &&
-              prevMessages[0].text === "Enter a channel name to connect!"
-            ) {
-              return [newStatusMessage]; // Replace initial message
-            }
-            return addMessageAndSlice(prevMessages, newStatusMessage);
-          });
-        } else if (statusData.status === "disconnected") {
-          // -- DISCONNECTED
-          setIsConnected(false);
-          setIsConnecting(false);
-          setMessages((prevMessages) =>
-            addMessageAndSlice(prevMessages, {
-              username: "System",
-              text: `Disconnected from #${statusData.channel}. ${
-                statusData.reason ? `(Reason: ${statusData.reason})` : ""
-              }`,
-              color: "#FF4500", // Orange Red
-            })
-          );
-          setChannelName("");
-        } else if (statusData.status === "error") {
-          // -- ERROR
-          setIsConnected(false);
-          setIsConnecting(false);
-          setMessages((prevMessages) =>
-            addMessageAndSlice(prevMessages, {
-              username: "System",
-              text: `Connection error for #${statusData.channel}: ${
-                statusData.error || "Unknown error"
-              }`,
-              color: "#DC143C", // Crimson
-            })
-          );
-        }
-      });
-
-      // Register a listener for 7TV global emotes updates
-      window.electronAPI.on7TvEmotesUpdate((_event, emotesData) => {
-        console.log("[Renderer] Received 7TV Emotes Update:", emotesData);
-        // Convert array of [name, url] back to Map for efficient lookup
-        setGlobal7TvEmotes(new Map(emotesData.globalEmotes));
-        setChannel7TvEmotes(new Map(emotesData.channelEmotes));
-      });
-
-      //Initial fetch for 7TV Emotes on component mount
-      fetchAndSetInitial7TvEmotes();
-    } else {
+    if (!window.electronAPI) {
       console.error(
         "electronAPI is not available! Cannot listen for chat messages or connection status."
       );
+      return;
     }
 
+    // Named handlers so they can be removed reliably
+    const chatHandler = (_event, message) => {
+      console.log(`[Renderer] Received chat message:`, message);
+      setMessages((prevMessages) => addMessageAndSlice(prevMessages, message));
+    };
+
+    const connHandler = (_event, statusData) => {
+      console.log(`[Renderer] Connection status:`, statusData);
+
+      if (statusData.status === "connected") {
+        // -- CONNECTED
+        setIsConnected(true);
+        setIsConnecting(false);
+
+        setMessages((prevMessages) => {
+          const newStatusMessage = {
+            username: "System",
+            text: `Successfully connected to #${statusData.channel}!`,
+            color: "#32CD32",
+          };
+          // If only the initial "Enter channel" message is present, replace it with new status.
+          // Otherwise, just append the connection success message via helper.
+          if (
+            prevMessages.length === 1 &&
+            prevMessages[0].text === "Enter a channel name to connect!"
+          ) {
+            return [newStatusMessage]; // Replace initial message
+          }
+          return addMessageAndSlice(prevMessages, newStatusMessage);
+        });
+      } else if (statusData.status === "disconnected") {
+        // -- DISCONNECTED
+        setIsConnected(false);
+        setIsConnecting(false);
+        setMessages((prevMessages) =>
+          addMessageAndSlice(prevMessages, {
+            username: "System",
+            text: `Disconnected from #${statusData.channel}. ${
+              statusData.reason ? `(Reason: ${statusData.reason})` : ""
+            }`,
+            color: "#FF4500",
+          })
+        );
+        setChannelName("");
+      } else if (statusData.status === "error") {
+        // -- ERROR
+        setIsConnected(false);
+        setIsConnecting(false);
+        setMessages((prevMessages) =>
+          addMessageAndSlice(prevMessages, {
+            username: "System",
+            text: `Connection error for #${statusData.channel}: ${
+              statusData.error || "Unknown error"
+            }`,
+            color: "#DC143C",
+          })
+        );
+      }
+    };
+
+    const emotesHandler = (_event, emotesData) => {
+      console.log("[Renderer] Received 7TV Emotes Update:", emotesData);
+      // Convert array of [name, url] back to Map for efficient lookup
+      setGlobal7TvEmotes(new Map(emotesData.globalEmotes));
+      setChannel7TvEmotes(new Map(emotesData.channelEmotes));
+    };
+
+    // Register handlers and capture unsubscribe functions (preload returns unsubscribers)
+    const unsubscribers = [];
+    try {
+      const u1 = window.electronAPI.onChatMessage(chatHandler);
+      if (typeof u1 === "function") unsubscribers.push(u1);
+    } catch (e) {
+      console.warn("onChatMessage registration failed:", e);
+    }
+
+    try {
+      const u2 = window.electronAPI.onConnectionStatus(connHandler);
+      if (typeof u2 === "function") unsubscribers.push(u2);
+    } catch (e) {
+      console.warn("onConnectionStatus registration failed:", e);
+    }
+
+    try {
+      const u3 = window.electronAPI.on7TvEmotesUpdate(emotesHandler);
+      if (typeof u3 === "function") unsubscribers.push(u3);
+    } catch (e) {
+      console.warn("on7TvEmotesUpdate registration failed:", e);
+    }
+
+    // Initial fetch for 7TV Emotes on component mount
+    fetchAndSetInitial7TvEmotes();
+
     return () => {
-      // Cleanup
+      // LIFO cleanup
+      for (let i = unsubscribers.length - 1; i >= 0; i--) {
+        try {
+          const u = unsubscribers[i];
+          if (typeof u === "function") u();
+        } catch (err) {
+          console.warn("Error calling unsubscribe:", err);
+        }
+      }
+      console.log("[Renderer] Cleaned up IPC listeners.");
     };
   }, [fetchAndSetInitial7TvEmotes]);
 
@@ -393,7 +422,7 @@ function ChatPage({ authenticatedUsername }) {
         addMessageAndSlice(prevMessages, {
           username: authenticatedUsername, // Use the authenticated user's name
           text: trimmedMessage,
-          color: "#90EE90", // LightGreen for your own messages
+          color: "#90EE90",
           isSelf: true, // A flag to style your own messages differently
         })
       );
@@ -413,7 +442,7 @@ function ChatPage({ authenticatedUsername }) {
             text: `Failed to send message: ${
               error.message || "Unknown error."
             }`,
-            color: "#DC143C", // Crimson
+            color: "#DC143C",
             isSystem: true,
           })
         );

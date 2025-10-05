@@ -14,13 +14,13 @@ const SEVENTV_API_BASE_URL = "https://7tv.io/v3";
 
 /**
  * Initializes the 7TV service.
- * @param {BrowserWindow} mainWindow - The main Electron BrowserWindow instance.
+ * @param {BrowserWindow} mainWindow
  */
 function initialize(mainWindow) {
   mainWindowRef = mainWindow;
   console.log("[7TV Service] Initializing and fetching global emotes...");
-  fetchGlobalEmotes(); // Fetch global emotes on initialization
-  setupIpcHandlers(); // Setup IPC handlers for renderer requests
+  fetchGlobalEmotes();
+  setupIpcHandlers();
 }
 
 /**
@@ -35,7 +35,7 @@ async function fetchGlobalEmotes() {
       );
     }
     const data = await response.json();
-    globalSevenTvEmotes.clear(); // Clear existing cache
+    globalSevenTvEmotes.clear();
     if (data.emotes && Array.isArray(data.emotes)) {
       data.emotes.forEach((emote) => {
         // Ensure emote and its data.host.url exist before constructing
@@ -45,7 +45,7 @@ async function fetchGlobalEmotes() {
           emote.data.host &&
           emote.data.host.url
         ) {
-          const emoteUrl = `${emote.data.host.url}/2x.webp`; // Using 2x.webp as default size and format
+          const emoteUrl = `${emote.data.host.url}/2x.webp`;
           globalSevenTvEmotes.set(emote.name, emoteUrl);
         }
       });
@@ -53,7 +53,7 @@ async function fetchGlobalEmotes() {
     console.log(
       `[7TV Service] Fetched ${globalSevenTvEmotes.size} global 7TV emotes.`
     );
-    sendEmotesToRenderer(); // Send updated emotes to renderer
+    sendEmotesToRenderer();
   } catch (error) {
     console.error("[7TV Service] Error fetching global 7TV emotes:", error);
   }
@@ -78,8 +78,7 @@ async function getTwitchUserId(username, token) {
       {
         headers: {
           "Client-ID": config.TWITCH_CLIENT_ID,
-          // 'Authorization': `Bearer YOUR_APP_ACCESS_TOKEN_OR_USER_TOKEN`, // Only if Twitch requires auth for this endpoint
-          Authorization: `Bearer ${token}`, // Use the configured access token
+          Authorization: `Bearer ${token}`,
         },
       }
     );
@@ -132,7 +131,7 @@ async function fetchChannelEmotes(twitchUserId) {
         `Failed to fetch 7TV channel emotes for ${twitchUserId}: ${response.statusText}`
       );
     }
-    const data = await response.json(); // data will be the user object with emote_set
+    const data = await response.json();
 
     const emotesForChannel = new Map();
     // Assuming the channel emotes are under data.emote_set.emotes based on common 7TV user structure
@@ -144,7 +143,7 @@ async function fetchChannelEmotes(twitchUserId) {
           emote.data.host &&
           emote.data.host.url
         ) {
-          const emoteUrl = `${emote.data.host.url}/2x.webp`; // Using 2x.webp as default size and format
+          const emoteUrl = `${emote.data.host.url}/2x.webp`;
           emotesForChannel.set(emote.name, emoteUrl);
         }
       });
@@ -183,8 +182,8 @@ function sendEmotesToRenderer() {
       : [];
 
     mainWindowRef.webContents.send("7tv-emotes-update", {
-      globalEmotes: Array.from(globalSevenTvEmotes.entries()), // Convert Map to array of [name, url]
-      channelEmotes: currentChannelEmotesArray, // Convert Map to array of [name, url]
+      globalEmotes: Array.from(globalSevenTvEmotes.entries()),
+      channelEmotes: currentChannelEmotesArray,
     });
     console.log("[7TV Service] Sent emote update to renderer.");
   }

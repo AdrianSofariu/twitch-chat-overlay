@@ -2,14 +2,13 @@ const http = require("http");
 const fetch = require("node-fetch");
 const { URLSearchParams } = require("url");
 
-// These will be set during initialization
 let mainWindow = null;
 let twitchClientId = null;
 let twitchClientSecret = null;
 let oauthRedirectPort = null;
 let oauthRedirectUri = null;
 
-// Use an event emitter or a simple callback for communication
+// Use callback for communication
 let onOAuthSuccessCallback = null;
 let onOAuthFailureCallback = null;
 
@@ -71,10 +70,9 @@ function startOAuthServer() {
       console.log(`[OAuthServer] Received OAuth code: ${code}`);
 
       try {
-        // 1. Exchange authorization code for access token
+        // Exchange authorization code for access token
         let tokenResponse;
         try {
-          // <-- ADDED: Try-catch for fetch
           tokenResponse = await fetch("https://id.twitch.tv/oauth2/token", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -87,7 +85,6 @@ function startOAuthServer() {
             }).toString(),
           });
         } catch (networkError) {
-          // Catch network errors for token exchange
           throw new Error(
             `Network error during token exchange: ${networkError.message}`
           );
@@ -96,7 +93,7 @@ function startOAuthServer() {
         if (!tokenResponse.ok) {
           const errorData = await tokenResponse
             .json()
-            .catch(() => ({ message: "Unknown error parsing response." })); // Catch JSON parse errors
+            .catch(() => ({ message: "Unknown error parsing response." }));
           throw new Error(
             `Twitch API Error (Token): ${tokenResponse.status} - ${
               errorData.message || JSON.stringify(errorData)
@@ -115,10 +112,9 @@ function startOAuthServer() {
           )}...`
         );
 
-        // 2. Use access token to get user info (like username)
+        // Use access token to get user info (like username)
         let userResponse;
         try {
-          // <-- ADDED: Try-catch for fetch
           userResponse = await fetch("https://api.twitch.tv/helix/users", {
             headers: {
               "Client-ID": twitchClientId,
@@ -126,7 +122,6 @@ function startOAuthServer() {
             },
           });
         } catch (networkError) {
-          // Catch network errors for user info fetch
           throw new Error(
             `Network error during user info fetch: ${networkError.message}`
           );
@@ -135,7 +130,7 @@ function startOAuthServer() {
         if (!userResponse.ok) {
           const errorData = await userResponse
             .json()
-            .catch(() => ({ message: "Unknown error parsing response." })); // Catch JSON parse errors
+            .catch(() => ({ message: "Unknown error parsing response." }));
           throw new Error(
             `Twitch API Error (User Info): ${userResponse.status} - ${
               errorData.message || JSON.stringify(errorData)
@@ -201,8 +196,8 @@ function startOAuthServer() {
           </html>
         `);
       } finally {
-        // Crucially, close the HTTP server after handling the request.
-        stopOAuthServer(); // Call the stop function
+        // Close the HTTP server after handling the request.
+        stopOAuthServer();
       }
     } else {
       // If the redirect didn't contain a 'code' or 'error' parameter
@@ -228,7 +223,6 @@ let refreshIntervalId = null;
  * @param {number} intervalMs - The interval in milliseconds for auto-refreshing the token (default is 3.5 hours).
  */
 async function refreshAccessToken() {
-  // <--- NEW: Moved refresh logic to a separate function
   if (!currentAuthDetails || !currentAuthDetails.refreshToken) {
     console.warn(
       "[OAuthServer] No refresh token available to refresh access token."
@@ -291,17 +285,14 @@ function startTokenAutoRefresh(intervalMs = 3.5 * 60 * 60 * 1000) {
       console.warn(
         "[OAuthServer] No refresh token for auto-refresh. Stopping auto-refresh."
       );
-      stopTokenAutoRefresh(); // Stop if no refresh token
+      stopTokenAutoRefresh();
       return;
     }
     try {
-      await refreshAccessToken(); // Call the dedicated refresh function
-      // Optionally, you could send an IPC to the renderer indicating a successful refresh,
-      // but it's usually handled silently in the background.
+      await refreshAccessToken();
     } catch (err) {
       console.warn("[OAuthServer] Failed to auto-refresh token:", err.message);
-      // The refreshAccessToken function already clears authDetails and calls onOAuthFailureCallback on critical failure.
-      stopTokenAutoRefresh(); // Stop the interval on failure
+      stopTokenAutoRefresh();
     }
   }, intervalMs);
 

@@ -1,5 +1,5 @@
 const tmi = require("tmi.js");
-const config = require("../../config"); // Import your config file
+const config = require("../../config");
 
 // This client will be shared across connect/disconnect calls
 let twitchClient = null;
@@ -76,8 +76,8 @@ function getLuminance(hex) {
  * @param {string} originalColor The original hex color from Twitch or generated.
  * @returns {string} A readable hex color.
  */
-const MIN_LUMINANCE = 40; // Experiment with this value (0-255). Lower values allow darker colors.
-const FALLBACK_COLOR = "#AAAAAA"; // Light grey, readable on dark backgrounds
+const MIN_LUMINANCE = 40;
+const FALLBACK_COLOR = "#AAAAAA";
 
 function ensureReadableColor(originalColor) {
   if (!originalColor) {
@@ -169,12 +169,11 @@ async function doesChannelExist(channelName, accessToken) {
       console.error(
         `[TwitchChatService] Helix API error checking channel ${channelName}: ${response.status} - ${errorText}`
       );
-      // If it's a 401, the token might be invalid, but for a channel check, we still return false.
+      // If it's a 401, the token might be invalid, but for a channel check, still return false.
       return false;
     }
 
     const data = await response.json();
-    // The 'data' array will be empty if the user is not found.
     return data.data && data.data.length > 0;
   } catch (error) {
     console.error(
@@ -207,7 +206,7 @@ async function connectToChannel(channelName, authDetails) {
     sendToRenderer("chat-message", {
       username: "System",
       text: "Connection failed: Please authenticate with Twitch first.",
-      color: "#FF0000", // Red for error
+      color: "#FF0000",
       isSystem: true,
     });
     return; // Exit the function if not authenticated
@@ -218,7 +217,7 @@ async function connectToChannel(channelName, authDetails) {
     await disconnectFromChannel();
   }
 
-  // Check if channel exists before attempting TMI.js connection ---
+  // Check if channel exists before attempting TMI.js connection
   sendToRenderer("connection-status", {
     status: "connecting",
     channel: channelName,
@@ -284,17 +283,16 @@ async function connectToChannel(channelName, authDetails) {
     // Ignore messages from ourselves
     if (self) return;
 
-    // Determine the color, applying your fallback logic,
-    // AND THEN ensuring readability
+    // Determine the color, applying fallback logic,
     const rawColor = tags["color"] || getColorFromUsername(tags.username);
-    const finalColor = ensureReadableColor(rawColor); // <--- NEW STEP HERE
+    const finalColor = ensureReadableColor(rawColor);
 
     // Extract relevant data from the message
     const messageData = {
       username: tags["display-name"] || tags.username,
       text: message,
       color: finalColor,
-      // You can add more tags here if needed, like badges, emotes, etc.
+      // Add more tags here if needed, like badges, emotes, etc.
       isMod: tags.mod,
       isSub: tags.subscriber,
       isVip: tags.vip,
@@ -308,8 +306,8 @@ async function connectToChannel(channelName, authDetails) {
 
   // -- Handle cheers
   twitchClient.on("cheer", (channel, tags, message) => {
-    const rawColor = tags["color"] || "#FFD700"; // Default gold if no user color
-    const finalColor = ensureReadableColor(rawColor); // <--- NEW STEP HERE
+    const rawColor = tags["color"] || "#FFD700";
+    const finalColor = ensureReadableColor(rawColor);
 
     const messageData = {
       username: tags["display-name"] || tags.username,
@@ -331,7 +329,7 @@ async function connectToChannel(channelName, authDetails) {
       text: `${username} has been timed out for ${duration} seconds. Reason: ${
         reason || "N/A"
       }`,
-      color: "#FF6347", // Tomato color for timeout messages
+      color: "#FF6347",
     };
     sendToRenderer("chat-message", messageData);
   });
@@ -341,7 +339,7 @@ async function connectToChannel(channelName, authDetails) {
     const messageData = {
       username: "System",
       text: `${username} has been banned. Reason: ${reason || "N/A"}`,
-      color: "#DC143C", // Crimson color for ban messages
+      color: "#DC143C",
     };
     sendToRenderer("chat-message", messageData);
   });
@@ -351,7 +349,7 @@ async function connectToChannel(channelName, authDetails) {
     const messageData = {
       username: "System",
       text: `${username} is raiding with ${viewers} viewers!`,
-      color: "#9370DB", // MediumPurple for raid messages
+      color: "#9370DB",
     };
     sendToRenderer("chat-message", messageData);
   });
@@ -359,14 +357,14 @@ async function connectToChannel(channelName, authDetails) {
   // -- Handle Twitch IRC notices
   twitchClient.on("notice", (channel, msgid, message) => {
     let systemMessageText = message; // Default to the message provided by Twitch
-    let systemMessageColor = "#FFA500"; // Default orange for warnings
+    let systemMessageColor = "#FFA500";
 
     // Customize messages and colors based on common msgid types
     switch (msgid) {
       case "msg_banned":
       case "msg_channel_suspended":
         systemMessageText = `You are banned from #${channel} chat.`;
-        systemMessageColor = "#DC143C"; // Crimson red
+        systemMessageColor = "#DC143C";
         break;
       case "msg_duplicate":
         systemMessageText = `Your message was not sent: Duplicate message (try adding a space or changing slightly).`;
@@ -379,7 +377,7 @@ async function connectToChannel(channelName, authDetails) {
         break;
       case "msg_subsonly":
         systemMessageText = `This channel is in subscribers-only mode.`;
-        systemMessageColor = "#8A2BE2"; // Blue Violet
+        systemMessageColor = "#8A2BE2";
         break;
       case "msg_ratelimit":
         systemMessageText = `You are sending messages too fast (rate limit exceeded).`;
@@ -392,9 +390,9 @@ async function connectToChannel(channelName, authDetails) {
         break;
       case "msg_bad_words": // This is for AutoMod
         systemMessageText = `Your message was not sent: Blocked by AutoMod.`;
-        systemMessageColor = "#DC143C"; // Crimson red
+        systemMessageColor = "#DC143C";
         break;
-      // Add more cases as you discover relevant msgids from Twitch
+      // Add more cases for other relevant msgids from Twitch
       default:
         console.log(`[TwitchChatService] Unhandled notice msgid: ${msgid}`);
         break;
@@ -439,7 +437,6 @@ async function disconnectFromChannel() {
       twitchClient = null;
     } catch (error) {
       console.error(`[TwitchChatService] Error during disconnect:`, error);
-      // Even if disconnect fails, consider it disconnected from the app's perspective
       sendToRenderer("connection-status", {
         status: "disconnected",
         channel: currentChannel,

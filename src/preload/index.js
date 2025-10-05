@@ -13,15 +13,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   // Function for the renderer to listen for incoming chat messages
   onChatMessage: (callback) => {
-    ipcRenderer.removeAllListeners("chat-message");
-    // Add the new listener
     ipcRenderer.on("chat-message", callback);
+    return () => ipcRenderer.removeListener("chat-message", callback);
   },
   // Function for the renderer to listen for connection status updates
   onConnectionStatus: (callback) => {
-    ipcRenderer.removeAllListeners("connection-status");
-    // Add the new listener
     ipcRenderer.on("connection-status", callback);
+    return () => ipcRenderer.removeListener("connection-status", callback);
   },
   // Function to start the Twitch OAuth authentication flow
   startOAuthFlow: () => {
@@ -30,15 +28,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   // Function for the renderer to listen for OAuth status messages
   onOAuthStatus: (callback) => {
-    ipcRenderer.removeAllListeners("oauth-status");
     ipcRenderer.on("oauth-status", callback);
+    return () => ipcRenderer.removeListener("oauth-status", callback);
   },
   // Functions to get 7TV global and channel emotes
   get7TvGlobalEmotes: () => ipcRenderer.invoke("get-7tv-global-emotes"),
   get7TvChannelEmotes: () => ipcRenderer.invoke("get-7tv-channel-emotes"),
   // Function to listen for 7TV emotes updates
-  on7TvEmotesUpdate: (callback) =>
-    ipcRenderer.on("7tv-emotes-update", callback),
+  on7TvEmotesUpdate: (callback) => {
+    ipcRenderer.on("7tv-emotes-update", callback);
+    return () => ipcRenderer.removeListener("7tv-emotes-update", callback);
+  },
   // Function to send a message to the main process
   sendMessage: (message) => {
     console.log(`[Preload] Sending IPC: send-message: ${message}`);

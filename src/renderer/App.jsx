@@ -45,7 +45,6 @@ function App() {
         <button className="close-button" onClick={handleCloseApp}>
           X
         </button>{" "}
-        {/* <-- ADDED: Close button */}
       </div>
 
       {isAuthenticated ? (

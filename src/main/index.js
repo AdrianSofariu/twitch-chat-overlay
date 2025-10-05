@@ -22,7 +22,7 @@ function createWindow() {
   const { width, height } = primaryDisplay.workAreaSize;
 
   const windowWidth = 350;
-  const windowHeight = 400; // Initial smaller height for just input
+  const windowHeight = 400; // Initial smaller height
   const windowX = width - windowWidth - 40;
   const windowY = 20;
 
@@ -168,7 +168,7 @@ function createWindow() {
   // --- IPC Main Process Listener for Close App Button ---
   ipcMain.on("close-app", () => {
     if (mainWindow) {
-      mainWindow.close(); // Close the window
+      mainWindow.close();
     }
   });
 
